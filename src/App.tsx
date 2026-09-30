@@ -25,6 +25,7 @@ import { Loader2, Upload, FileUp, CheckCircle2, GitCompare } from 'lucide-react'
 import { ActiveTab } from './components/DashboardNavigation';
 import { DEFAULT_RECOMMENDATIONS } from './data/defaultRecommendations';
 import { QuickSuggestionsCard } from './components/QuickSuggestionsCard';
+import { getInitialSavedSnapshots } from './data/sampleVersions';
 
 export default function App() {
   const [darkMode, setDarkMode] = useState<boolean>(() => {
@@ -263,17 +264,9 @@ export default function App() {
 
   // Curriculum Version Comparison State & Snapshot Management
   const [isVersionModalOpen, setIsVersionModalOpen] = useState<boolean>(false);
-  const [savedSnapshots, setSavedSnapshots] = useState<CurriculumVersionSnapshot[]>(() => [
-    {
-      id: 'baseline-msc-reference',
-      name: 'Baseline Reference: MSc Data Science',
-      timestamp: 'Initial Benchmark',
-      curriculumText: SAMPLE_CURRICULUM,
-      alignmentScore: 58.4,
-      extractedSkills: initialSampleExtractedSkills,
-      analyzedSkills: computeAnalysis(defaultSkillsData as MarketSkill[], initialSampleExtractedSkills, 5, 15).analyzedSkills,
-    },
-  ]);
+  const [savedSnapshots, setSavedSnapshots] = useState<CurriculumVersionSnapshot[]>(() =>
+    getInitialSavedSnapshots(initialSampleExtractedSkills)
+  );
 
   const currentSnapshot: CurriculumVersionSnapshot = React.useMemo(() => ({
     id: 'current-workspace',
@@ -700,7 +693,11 @@ export default function App() {
                 </div>
 
                 {/* Market Benchmark Transparency & Reliability Card */}
-                <MarketTransparencyCard onOpenValidationModal={() => setIsValidationModalOpen(true)} />
+                <MarketTransparencyCard
+                  onOpenValidationModal={() => setIsValidationModalOpen(true)}
+                  onOpenDatasetModal={() => setIsDatasetModalOpen(true)}
+                  marketSkillCount={marketSkills.length}
+                />
 
                 {/* Live Suggestions Card directly on Overview */}
                 <QuickSuggestionsCard
@@ -813,6 +810,11 @@ export default function App() {
         savedSnapshots={savedSnapshots}
         onSaveSnapshot={handleSaveSnapshot}
         onLoadSnapshot={handleLoadSnapshot}
+      />
+
+      <ValidationModal
+        isOpen={isValidationModalOpen}
+        onClose={() => setIsValidationModalOpen(false)}
       />
     </div>
   );

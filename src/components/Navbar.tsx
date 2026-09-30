@@ -15,11 +15,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   darkMode,
   onToggleDarkMode,
   onOpenHowItWorks,
+  onOpenDatasetModal,
   onOpenValidationModal,
   onOpenVersionModal,
+  datasetSkillCount,
 }) => {
   return (
-    <header className="h-16 shrink-0 bg-white dark:bg-[#080d19] border-b border-slate-200 dark:border-slate-800/80 px-6 flex items-center justify-between z-40 text-slate-900 dark:text-white transition-colors duration-200">
+    <header className="h-16 shrink-0 bg-white dark:bg-[#080d19] border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 flex items-center justify-between z-40 text-slate-900 dark:text-white transition-colors duration-200">
       {/* Brand: Rounded square icon with bar chart + SkillGap AI + NLP v2.4 badge */}
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 rounded-lg bg-slate-950 dark:bg-white flex items-center justify-center text-white dark:text-slate-950 shadow-sm transition-colors">
@@ -40,8 +42,20 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </div>
 
-      {/* Right actions: Compare Versions + Validation + How it works + theme toggle */}
-      <div className="flex items-center gap-2.5">
+      {/* Right actions: Market Benchmark + Compare Versions + Validation + How it works + theme toggle */}
+      <div className="flex items-center gap-2 sm:gap-2.5">
+        <button
+          onClick={onOpenDatasetModal}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-800/80 transition cursor-pointer"
+          title="Market Demand Benchmark Dataset (Kaggle Job Telemetry)"
+        >
+          <BookOpen className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 hidden xs:inline" />
+          <span>Market Benchmark</span>
+          <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-blue-200/70 dark:bg-blue-900/80 text-blue-800 dark:text-blue-200 font-bold">
+            {datasetSkillCount}
+          </span>
+        </button>
+
         {onOpenVersionModal && (
           <button
             onClick={onOpenVersionModal}
@@ -56,19 +70,18 @@ export const Navbar: React.FC<NavbarProps> = ({
         {onOpenValidationModal && (
           <button
             onClick={onOpenValidationModal}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-[#0f172a] hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/70 transition cursor-pointer"
-            title="Rule-Based Extraction & Matching Validation"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-[#0f172a] hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/70 transition cursor-pointer"
+            title="Rule-Based Extraction & Matching Validation Framework"
           >
-            <Shield className="w-3.5 h-3.5 text-blue-500" />
+            <Shield className="w-3.5 h-3.5 text-emerald-500" />
             <span>Validation</span>
           </button>
         )}
 
         <button
           onClick={onOpenHowItWorks}
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-[#0f172a] hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/70 transition cursor-pointer"
+          className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-[#0f172a] hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/70 transition cursor-pointer"
         >
-          <BookOpen className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
           <span>How it works</span>
         </button>
 

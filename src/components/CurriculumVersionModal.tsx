@@ -31,11 +31,12 @@ export const CurriculumVersionModal: React.FC<CurriculumVersionModalProps> = ({
     ...savedSnapshots.filter((s) => s.id !== currentSnapshot.id),
   ];
 
-  // Default: Compare first saved snapshot (or fallback baseline) against current
-  const [versionAId, setVersionAId] = useState<string>(
-    savedSnapshots.length > 0 ? savedSnapshots[0].id : currentSnapshot.id
-  );
-  const [versionBId, setVersionBId] = useState<string>(currentSnapshot.id);
+  // Default: Compare baseline against modern version (or 2nd snapshot/current) so diffs appear immediately
+  const defaultVersionA = savedSnapshots.find((s) => s.id === 'baseline-msc-reference')?.id || savedSnapshots[0]?.id || currentSnapshot.id;
+  const defaultVersionB = savedSnapshots.find((s) => s.id === 'cloud-mlops-v2')?.id || (savedSnapshots.length > 1 ? savedSnapshots[1].id : currentSnapshot.id);
+
+  const [versionAId, setVersionAId] = useState<string>(defaultVersionA);
+  const [versionBId, setVersionBId] = useState<string>(defaultVersionB);
 
   const [activeDiffTab, setActiveDiffTab] = useState<'all' | 'improved' | 'added' | 'removed' | 'regressed'>('all');
   const [newSnapshotName, setNewSnapshotName] = useState<string>('');
@@ -56,6 +57,12 @@ export const CurriculumVersionModal: React.FC<CurriculumVersionModalProps> = ({
 
   const isScorePositive = comparison.scoreDelta > 0;
   const isScoreNeutral = comparison.scoreDelta === 0;
+
+  const hasNoDiffs =
+    comparison.improvedGaps.length === 0 &&
+    comparison.addedSkills.length === 0 &&
+    comparison.removedSkills.length === 0 &&
+    comparison.newGaps.length === 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
@@ -86,87 +93,140 @@ export const CurriculumVersionModal: React.FC<CurriculumVersionModalProps> = ({
 
         {/* Content */}
         <div className="p-6 overflow-y-auto space-y-6 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-          {/* Version Selector Bar & Score Delta Card */}
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-850/60 border border-slate-200 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <div>
-                <label className="block text-[10px] font-mono uppercase font-bold text-slate-400 mb-1">
-                  Baseline (Version A)
-                </label>
-                <select
-                  value={versionAId}
-                  onChange={(e) => setVersionAId(e.target.value)}
-                  className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-semibold text-xs"
-                >
-                  {allVersions.map((v) => (
-                    <option key={`a-${v.id}`} value={v.id}>
-                      {v.name} ({v.alignmentScore.toFixed(1)}%)
-                    </option>
-                  ))}
-                </select>
+            {/* Version Selector Bar & Score Delta Card */}
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-850/60 border border-slate-200 dark:border-slate-800 space-y-3">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <div>
+                  <label className="block text-[10px] font-mono uppercase font-bold text-slate-400 mb-1">
+                    Baseline (Version A)
+                  </label>
+                  <select
+                    value={versionAId}
+                    onChange={(e) => setVersionAId(e.target.value)}
+                    className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-semibold text-xs"
+                  >
+                    {allVersions.map((v) => (
+                      <option key={`a-${v.id}`} value={v.id}>
+                        {v.name} ({v.alignmentScore.toFixed(1)}%)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="self-end pb-1.5 hidden sm:block">
+                  <ArrowRight className="w-4 h-4 text-slate-400" />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-mono uppercase font-bold text-slate-400 mb-1">
+                    Target (Version B)
+                  </label>
+                  <select
+                    value={versionBId}
+                    onChange={(e) => setVersionBId(e.target.value)}
+                    className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-semibold text-xs"
+                  >
+                    {allVersions.map((v) => (
+                      <option key={`b-${v.id}`} value={v.id}>
+                        {v.name} ({v.alignmentScore.toFixed(1)}%)
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              <div className="self-end pb-1.5 hidden sm:block">
-                <ArrowRight className="w-4 h-4 text-slate-400" />
-              </div>
+              {/* Score Delta Display */}
+              <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800 shadow-2xs">
+                <div className="text-right">
+                  <span className="text-[10px] font-mono uppercase text-slate-400 block font-semibold">Baseline</span>
+                  <span className="text-base font-extrabold text-slate-700 dark:text-slate-300 font-mono">
+                    {comparison.scoreA.toFixed(1)}%
+                  </span>
+                </div>
 
-              <div>
-                <label className="block text-[10px] font-mono uppercase font-bold text-slate-400 mb-1">
-                  Target (Version B)
-                </label>
-                <select
-                  value={versionBId}
-                  onChange={(e) => setVersionBId(e.target.value)}
-                  className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-semibold text-xs"
-                >
-                  {allVersions.map((v) => (
-                    <option key={`b-${v.id}`} value={v.id}>
-                      {v.name} ({v.alignmentScore.toFixed(1)}%)
-                    </option>
-                  ))}
-                </select>
+                <ArrowRight className="w-4 h-4 text-slate-400 shrink-0" />
+
+                <div className="text-left">
+                  <span className="text-[10px] font-mono uppercase text-slate-400 block font-semibold">Target</span>
+                  <span className="text-base font-extrabold text-slate-900 dark:text-white font-mono">
+                    {comparison.scoreB.toFixed(1)}%
+                  </span>
+                </div>
+
+                <div className="pl-3 border-l border-slate-200 dark:border-slate-800">
+                  <span className="text-[10px] font-mono uppercase text-slate-400 block font-semibold">Score Delta</span>
+                  <div className="flex items-center gap-1">
+                    {isScorePositive ? (
+                      <ArrowUpRight className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    ) : !isScoreNeutral ? (
+                      <ArrowDownRight className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                    ) : null}
+                    <span
+                      className={`font-mono font-bold text-sm ${
+                        isScorePositive
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : isScoreNeutral
+                          ? 'text-slate-500'
+                          : 'text-rose-600 dark:text-rose-400'
+                      }`}
+                    >
+                      {isScorePositive ? `+${comparison.scoreDelta.toFixed(1)}%` : `${comparison.scoreDelta.toFixed(1)}%`}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Score Delta Display */}
-            <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800 shadow-2xs">
-              <div className="text-right">
-                <span className="text-[10px] font-mono uppercase text-slate-400 block font-semibold">Baseline</span>
-                <span className="text-base font-extrabold text-slate-700 dark:text-slate-300 font-mono">
-                  {comparison.scoreA.toFixed(1)}%
-                </span>
-              </div>
-
-              <ArrowRight className="w-4 h-4 text-slate-400 shrink-0" />
-
-              <div className="text-left">
-                <span className="text-[10px] font-mono uppercase text-slate-400 block font-semibold">Target</span>
-                <span className="text-base font-extrabold text-slate-900 dark:text-white font-mono">
-                  {comparison.scoreB.toFixed(1)}%
-                </span>
-              </div>
-
-              <div className="pl-3 border-l border-slate-200 dark:border-slate-800">
-                <span className="text-[10px] font-mono uppercase text-slate-400 block font-semibold">Score Delta</span>
-                <div className="flex items-center gap-1">
-                  {isScorePositive ? (
-                    <ArrowUpRight className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  ) : !isScoreNeutral ? (
-                    <ArrowDownRight className="w-4 h-4 text-rose-600 dark:text-rose-400" />
-                  ) : null}
-                  <span
-                    className={`font-mono font-bold text-sm ${
-                      isScorePositive
-                        ? 'text-emerald-600 dark:text-emerald-400'
-                        : isScoreNeutral
-                        ? 'text-slate-500'
-                        : 'text-rose-600 dark:text-rose-400'
-                    }`}
-                  >
-                    {isScorePositive ? `+${comparison.scoreDelta.toFixed(1)}%` : `${comparison.scoreDelta.toFixed(1)}%`}
-                  </span>
-                </div>
-              </div>
+            {/* Quick Comparison Presets */}
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-200/70 dark:border-slate-800 text-[11px]">
+              <span className="text-[10px] font-mono uppercase font-bold text-slate-400">Quick Compare:</span>
+              {allVersions.some((v) => v.id === 'baseline-msc-reference') && allVersions.some((v) => v.id === 'cloud-mlops-v2') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVersionAId('baseline-msc-reference');
+                    setVersionBId('cloud-mlops-v2');
+                  }}
+                  className={`px-2.5 py-1 rounded font-semibold transition cursor-pointer ${
+                    versionAId === 'baseline-msc-reference' && versionBId === 'cloud-mlops-v2'
+                      ? 'bg-indigo-600 text-white shadow-2xs'
+                      : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50'
+                  }`}
+                >
+                  Baseline vs. Modernized v2.0
+                </button>
+              )}
+              {allVersions.some((v) => v.id === 'legacy-stats-v1') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVersionAId('legacy-stats-v1');
+                    setVersionBId(currentSnapshot.id);
+                  }}
+                  className={`px-2.5 py-1 rounded font-semibold transition cursor-pointer ${
+                    versionAId === 'legacy-stats-v1' && versionBId === currentSnapshot.id
+                      ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-2xs'
+                      : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
+                  }`}
+                >
+                  Legacy v1.0 vs. Current Workspace
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setVersionAId('baseline-msc-reference');
+                  setVersionBId(currentSnapshot.id);
+                }}
+                className={`px-2.5 py-1 rounded font-semibold transition cursor-pointer ${
+                  versionAId === 'baseline-msc-reference' && versionBId === currentSnapshot.id
+                    ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-2xs'
+                    : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
+                }`}
+              >
+                Baseline vs. Current Workspace
+              </button>
             </div>
           </div>
 
@@ -392,13 +452,48 @@ export const CurriculumVersionModal: React.FC<CurriculumVersionModalProps> = ({
                     </tr>
                   ))}
 
-                {comparison.improvedGaps.length === 0 &&
-                  comparison.addedSkills.length === 0 &&
-                  comparison.removedSkills.length === 0 &&
-                  comparison.newGaps.length === 0 && (
+                {hasNoDiffs && (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-slate-400 font-mono text-xs">
-                        No skill differences detected between Version A and Version B.
+                      <td colSpan={5} className="py-10 px-4 text-center">
+                        <div className="max-w-md mx-auto space-y-2.5">
+                          <div className="inline-flex p-2.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                            <GitCompare className="w-5 h-5" />
+                          </div>
+                          <h4 className="font-bold text-slate-800 dark:text-slate-200 text-xs">
+                            No Skill Differences Detected Between Selected Versions
+                          </h4>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                            {versionA.id === versionB.id
+                              ? `Both Version A and Version B are set to "${versionA.name}" (identical).`
+                              : `Both versions currently teach the exact same set of skills at identical depth levels.`}
+                          </p>
+                          <div className="pt-2 flex flex-wrap justify-center gap-2">
+                            {allVersions.some((v) => v.id === 'cloud-mlops-v2') && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setVersionAId('baseline-msc-reference');
+                                  setVersionBId('cloud-mlops-v2');
+                                }}
+                                className="px-3 py-1 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition cursor-pointer"
+                              >
+                                Compare vs. Modernized v2.0
+                              </button>
+                            )}
+                            {allVersions.some((v) => v.id === 'legacy-stats-v1') && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setVersionAId('legacy-stats-v1');
+                                  setVersionBId('baseline-msc-reference');
+                                }}
+                                className="px-3 py-1 text-xs font-semibold rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-300 transition cursor-pointer"
+                              >
+                                Compare Legacy vs. Baseline
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </td>
                     </tr>
                   )}
